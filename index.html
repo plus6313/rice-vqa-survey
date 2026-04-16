@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>水稻田間影像標註工具</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+:root {
+  --c-bg: #f5f2eb;
+  --c-card: #ffffff;
+  --c-border: #d4cfc4;
+  --c-text: #2c2a25;
+  --c-text2: #6b6660;
+  --c-accent: #3a7d44;
+  --c-accent2: #2d6235;
+  --c-gold: #b8860b;
+  --c-chip: #eae7df;
+  --c-chip-hover: #ddd9ce;
+  --c-chip-active: #3a7d44;
+  --c-chip-active-text: #fff;
+  --c-na: #9e9890;
+  --c-danger: #c0392b;
+  --c-warn: #d4a017;
+  --c-success: #27ae60;
+  --radius: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 15px; }
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* === Header === */
+.header {
+  background: #2c2a25;
+  color: #e8e4db;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.5px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.hbtn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #ccc;
+  padding: 5px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.hbtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.progress-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--c-accent);
+  transition: width 0.3s;
+}
+
+/* === Main Layout === */
+.main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .main { grid-template-columns: 1fr; }
+}
+
+/* === Image Panel === */
+.img-panel {
+  background: var(--c-card);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 60px;
+}
+.img-info {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--c-text2);
+}
+.img-info .fname { font-weight: 500; color: var(--c-text); }
+.img-wrap {
+  position: relative;
+  background: #1a1a18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  max-height: 70vh;
+}
+.img-wrap img {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  display: block;
+}
+.img-nav {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--c-border);
+}
+.nav-btn {
+  background: var(--c-chip);
+  border: none;
+  padding: 6px 18px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+.nav-btn:hover { background: var(--c-chip-hover); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-counter { font-size: 0.85rem; color: var(--c-text2); }
+.nav-counter b { color: var(--c-text); }
+
+/* === Form Panel === */
+.form-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* === Section Card === */
+.section {
+  background: var(--c-card);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.section-header {
+  padding: 10px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--c-text2);
+  border-bottom: 1px solid var(--c-border);
+  background: #faf8f4;
+}
+.section-body { padding: 14px 16px; }
+
+/* === Question === */
+.q-group { margin-bottom: 14px; }
+.q-group:last-child { margin-bottom: 0; }
+.q-label {
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.q-label .q-num {
+  background: var(--c-accent);
+  color: #fff;
+  font-size: 0.7rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* === Chip Selector === */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--c-border);
+  background: var(--c-chip);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  transition: all 0.12s;
+  user-select: none;
+  white-space: nowrap;
+}
+.chip:hover { background: var(--c-chip-hover); border-color: #bbb; }
+.chip.active {
+  background: var(--c-chip-active);
+  color: var(--c-chip-active-text);
+  border-color: var(--c-chip-active);
+}
+.chip.na {
+  color: var(--c-na);
+  border-style: dashed;
+  font-size: 0.78rem;
+}
+.chip.na.active {
+  background: #888;
+  color: #fff;
+  border-color: #888;
+}
+.chip.multi.active {
+  background: #e8f5e9;
+  color: var(--c-accent2);
+  border-color: var(--c-accent);
+}
+
+/* === Health Rating === */
+.health-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.health-btn {
+  width: 44px;
+  height: 38px;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  background: var(--c-chip);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.health-btn:hover { border-color: #aaa; }
+.health-btn.active { color: #fff; border-color: transparent; }
+.health-btn[data-v="1"].active { background: var(--c-danger); }
+.health-btn[data-v="2"].active { background: #e67e22; }
+.health-btn[data-v="3"].active { background: var(--c-warn); }
+.health-btn[data-v="4"].active { background: #7dbb42; }
+.health-btn[data-v="5"].active { background: var(--c-success); }
+.health-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--c-na);
+  margin-top: 2px;
+  padding: 0 2px;
+}
+
+/* === Textarea === */
+.note-area {
+  width: 100%;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+  min-height: 60px;
+  transition: border-color 0.15s;
+  background: #faf9f6;
+}
+.note-area:focus { outline: none; border-color: var(--c-accent); }
+.note-area::placeholder { color: #bbb; }
+
+/* === Submit Button === */
+.submit-row { display: flex; gap: 8px; }
+.submit-btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.submit-btn.primary {
+  background: var(--c-accent);
+  color: #fff;
+}
+.submit-btn.primary:hover { background: var(--c-accent2); }
+.submit-btn.skip {
+  background: var(--c-chip);
+  color: var(--c-text2);
+  flex: 0 0 auto;
+  font-size: 0.85rem;
+}
+.submit-btn.skip:hover { background: var(--c-chip-hover); }
+
+/* === Status === */
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.status-done { background: #e8f5e9; color: var(--c-accent2); }
+.status-pending { background: #fff3e0; color: #e67e22; }
+
+/* === Toast === */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #2c2a25;
+  color: #e8e4db;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 200;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* === Loading === */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--c-text2);
+  gap: 12px;
+}
+.loading-screen p { font-size: 0.9rem; }
+
+/* === Completion Banner === */
+.completion {
+  text-align: center;
+  padding: 40px 20px;
+}
+.completion h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--c-accent); }
+.completion p { color: var(--c-text2); }
+
+/* Keyboard hint */
+.kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  color: #999;
+  margin-left: 4px;
+  font-family: monospace;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>🌾 水稻田間影像標註工具</h1>
+  </div>
+  <div class="header-right">
+    <span id="progressText" style="font-size:0.8rem;color:#999;"></span>
+    <button class="hbtn" onclick="importData()">匯入</button>
+    <button class="hbtn" onclick="exportData()">匯出 JSON</button>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- Main -->
+<div class="main" id="appMain" style="display:none;">
+  <!-- Left: Image -->
+  <div class="img-panel">
+    <div class="img-info">
+      <span class="fname" id="fileName">—</span>
+      <span id="statusBadge"></span>
+    </div>
+    <div class="img-wrap">
+      <img id="mainImg" src="" alt="田間照片">
+    </div>
+    <div class="img-nav">
+      <button class="nav-btn" id="btnPrev" onclick="go(-1)">← 上一張 <span class="kbd">A</span></button>
+      <span class="nav-counter"><b id="navCur">1</b> / <span id="navTotal">50</span></span>
+      <button class="nav-btn" id="btnNext" onclick="go(1)">下一張 → <span class="kbd">D</span></button>
+    </div>
+  </div>
+
+  <!-- Right: Form -->
+  <div class="form-panel">
+
+    <!-- A. Photo Conditions -->
+    <div class="section">
+      <div class="section-header">A 拍攝條件</div>
+      <div class="section-body">
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">1</span> 拍攝距離</div>
+          <div class="chips" data-field="distance" data-mode="single">
+            <div class="chip" data-v="close">近距離（1-3株）</div>
+            <div class="chip" data-v="mid">中距離（一小區）</div>
+            <div class="chip" data-v="far">全景（整塊田）</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">2</span> 拍攝角度</div>
+          <div class="chips" data-field="angle" data-mode="single">
+            <div class="chip" data-v="side">水平側拍</div>
+            <div class="chip" data-v="oblique">斜上方俯拍</div>
+            <div class="chip" data-v="topdown">正上方鳥瞰</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">3</span> 光線品質</div>
+          <div class="chips" data-field="lighting" data-mode="single">
+            <div class="chip" data-v="good">良好</div>
+            <div class="chip" data-v="backlit">逆光</div>
+            <div class="chip" data-v="overexposed">過曝</div>
+            <div class="chip" data-v="dark">偏暗</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">4</span> 校色卡</div>
+          <div class="chips" data-field="colorchecker" data-mode="single">
+            <div class="chip" data-v="yes">可見</div>
+            <div class="chip" data-v="no">未見</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B. Visual Observations -->
+    <div class="section">
+      <div class="section-header">B 視覺觀察</div>
+      <div class="section-body">
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">5</span> 葉色</div>
+          <div class="chips" data-field="leaf_color" data-mode="single">
+            <div class="chip" data-v="dark_green">深綠</div>
+            <div class="chip" data-v="normal_green">正常綠</div>
+            <div class="chip" data-v="light_green">偏黃綠</div>
+            <div class="chip" data-v="yellow">明顯黃化</div>
+            <div class="chip" data-v="mixed">黃綠交雜</div>
+            <div class="chip na" data-v="na">無法判斷</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">6</span> 植株密度</div>
+          <div class="chips" data-field="density" data-mode="single">
+            <div class="chip" data-v="dense">茂密</div>
+            <div class="chip" data-v="normal">適中</div>
+            <div class="chip" data-v="sparse">稀疏</div>
+            <div class="chip na" data-v="na">無法判斷</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">7</span> 生長整齊度</div>
+          <div class="chips" data-field="uniformity" data-mode="single">
+            <div class="chip" data-v="uniform">整齊</div>
+            <div class="chip" data-v="slight">略不齊</div>
+            <div class="chip" data-v="uneven">差異大</div>
+            <div class="chip na" data-v="na">無法判斷</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">8</span> 地面 / 水位</div>
+          <div class="chips" data-field="ground" data-mode="single">
+            <div class="chip" data-v="flooded">明顯積水</div>
+            <div class="chip" data-v="moist">濕潤</div>
+            <div class="chip" data-v="dry">乾燥</div>
+            <div class="chip" data-v="cracked">有裂縫</div>
+            <div class="chip na" data-v="na">看不到地面</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">9</span> 抽穗狀況</div>
+          <div class="chips" data-field="heading" data-mode="single">
+            <div class="chip" data-v="none">未抽穗</div>
+            <div class="chip" data-v="few">少數抽穗</div>
+            <div class="chip" data-v="most">多數抽穗</div>
+            <div class="chip" data-v="all">全部抽穗</div>
+            <div class="chip na" data-v="na">無法判斷</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">10</span> 異常狀況（可複選）</div>
+          <div class="chips" data-field="abnormal" data-mode="multi">
+            <div class="chip" data-v="none">無異常</div>
+            <div class="chip" data-v="disease">疑似病斑</div>
+            <div class="chip" data-v="pest">蟲害痕跡</div>
+            <div class="chip" data-v="lodging">倒伏</div>
+            <div class="chip" data-v="weed">雜草</div>
+            <div class="chip" data-v="other">其他</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C. Expert Judgment -->
+    <div class="section">
+      <div class="section-header">C 專家判斷</div>
+      <div class="section-body">
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">11</span> 生育階段（純看照片猜測）</div>
+          <div class="chips" data-field="stage_guess" data-mode="single">
+            <div class="chip" data-v="seedling">插秧初期</div>
+            <div class="chip" data-v="tillering">分蘗期</div>
+            <div class="chip" data-v="booting">孕穗期</div>
+            <div class="chip" data-v="heading">抽穗期</div>
+            <div class="chip" data-v="filling">灌漿期</div>
+            <div class="chip" data-v="mature">成熟期</div>
+            <div class="chip na" data-v="na">不確定</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">12</span> 整體健康評分</div>
+          <div class="health-row" data-field="health">
+            <button class="health-btn" data-v="1" onclick="setHealth(1)">1</button>
+            <button class="health-btn" data-v="2" onclick="setHealth(2)">2</button>
+            <button class="health-btn" data-v="3" onclick="setHealth(3)">3</button>
+            <button class="health-btn" data-v="4" onclick="setHealth(4)">4</button>
+            <button class="health-btn" data-v="5" onclick="setHealth(5)">5</button>
+          </div>
+          <div class="health-labels"><span>很差</span><span>待改善</span><span>普通</span><span>良好</span><span>優秀</span></div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">13</span> 備註（選填，任何你覺得值得記錄的觀察）</div>
+          <textarea class="note-area" id="noteField" placeholder="例如：第3排有明顯缺株、照片偏色嚴重不宜判斷葉色..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-row">
+      <button class="submit-btn skip" onclick="skipAndNext()">跳過此張</button>
+      <button class="submit-btn primary" onclick="saveAndNext()">儲存並下一張 <span class="kbd">Enter</span></button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadingScreen">
+  <p>正在載入圖片清單...</p>
+  <p style="font-size:0.8rem;color:#aaa;">請確認 image_list.json 存在於同一目錄</p>
+  <div style="margin-top:16px;">
+    <label class="hbtn" style="border-color:#888;color:#666;padding:8px 20px;cursor:pointer;">
+      或手動選擇圖片資料夾
+      <input type="file" id="manualFileInput" webkitdirectory multiple style="display:none;" onchange="handleManualFiles(event)">
+    </label>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="importInput" accept=".json" style="display:none;" onchange="handleImport(event)">
+
+<script>
+// ============================================================
+// State
+// ============================================================
+let images = [];
+let current = 0;
+let annotations = {};
+const STORAGE_KEY = 'rice_vqa_annotations';
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  // Try load from localStorage
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { annotations = JSON.parse(saved); } catch(e) { annotations = {}; }
+  }
+
+  // Try fetch image_list.json
+  try {
+    const resp = await fetch('image_list.json');
+    if (resp.ok) {
+      images = await resp.json();
+      startApp();
+      return;
+    }
+  } catch(e) {}
+
+  // Show loading screen with manual option
+  document.getElementById('loadingScreen').style.display = 'flex';
+}
+
+function handleManualFiles(e) {
+  const files = Array.from(e.target.files).filter(f =>
+    /\.(jpg|jpeg|png)$/i.test(f.name)
+  );
+  if (files.length === 0) { showToast('未找到圖片檔案'); return; }
+  files.sort((a,b) => a.name.localeCompare(b.name));
+  images = files.map(f => f.name);
+
+  // Store file objects for display
+  window._localFiles = {};
+  files.forEach(f => { window._localFiles[f.name] = URL.createObjectURL(f); });
+  window._useLocalFiles = true;
+
+  startApp();
+}
+
+function startApp() {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('appMain').style.display = 'grid';
+
+  // Jump to first unannotated
+  const firstUnannotated = images.findIndex(img => !annotations[img]);
+  current = firstUnannotated >= 0 ? firstUnannotated : 0;
+
+  setupChips();
+  render();
+}
+
+// ============================================================
+// Chip Interaction
+// ============================================================
+function setupChips() {
+  document.querySelectorAll('.chips').forEach(container => {
+    const mode = container.dataset.mode;
+    container.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (mode === 'single') {
+          container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+          chip.classList.toggle('active');
+        } else {
+          // Multi mode
+          const val = chip.dataset.v;
+          if (val === 'none') {
+            container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+          } else {
+            container.querySelector('[data-v="none"]')?.classList.remove('active');
+            chip.classList.toggle('active');
+          }
+          // Add multi class for styling
+          container.querySelectorAll('.chip.active').forEach(c => {
+            if (c.dataset.v !== 'none') c.classList.add('multi');
+          });
+        }
+      });
+    });
+  });
+}
+
+// ============================================================
+// Render
+// ============================================================
+function render() {
+  const imgPath = images[current];
+
+  // Image
+  if (window._useLocalFiles) {
+    document.getElementById('mainImg').src = window._localFiles[imgPath] || '';
+  } else {
+    document.getElementById('mainImg').src = imgPath;
+  }
+
+  // Info
+  const fname = imgPath.split('/').pop();
+  document.getElementById('fileName').textContent = fname;
+  document.getElementById('navCur').textContent = current + 1;
+  document.getElementById('navTotal').textContent = images.length;
+
+  // Status badge
+  const badge = document.getElementById('statusBadge');
+  if (annotations[imgPath]) {
+    badge.innerHTML = '<span class="status-badge status-done">已標註</span>';
+  } else {
+    badge.innerHTML = '<span class="status-badge status-pending">待標註</span>';
+  }
+
+  // Nav buttons
+  document.getElementById('btnPrev').disabled = current === 0;
+  document.getElementById('btnNext').disabled = current === images.length - 1;
+
+  // Progress
+  const done = Object.keys(annotations).filter(k => images.includes(k)).length;
+  document.getElementById('progressText').textContent = `${done}/${images.length} 已完成`;
+  document.getElementById('progressFill').style.width = `${(done/images.length)*100}%`;
+
+  // Restore saved answers
+  restoreAnswers(imgPath);
+}
+
+function restoreAnswers(imgPath) {
+  const data = annotations[imgPath] || {};
+
+  // Clear all chips
+  document.querySelectorAll('.chip').forEach(c => { c.classList.remove('active', 'multi'); });
+
+  // Restore single-select chips
+  ['distance','angle','lighting','colorchecker','leaf_color','density',
+   'uniformity','ground','heading','stage_guess'].forEach(field => {
+    const val = data[field];
+    if (val) {
+      const container = document.querySelector(`[data-field="${field}"]`);
+      if (container) {
+        const chip = container.querySelector(`[data-v="${val}"]`);
+        if (chip) chip.classList.add('active');
+      }
+    }
+  });
+
+  // Restore multi-select (abnormal)
+  const abnormals = data['abnormal'] || [];
+  const abContainer = document.querySelector('[data-field="abnormal"]');
+  if (abContainer) {
+    abnormals.forEach(v => {
+      const chip = abContainer.querySelector(`[data-v="${v}"]`);
+      if (chip) {
+        chip.classList.add('active');
+        if (v !== 'none') chip.classList.add('multi');
+      }
+    });
+  }
+
+  // Health
+  document.querySelectorAll('.health-btn').forEach(b => b.classList.remove('active'));
+  if (data['health']) {
+    const hb = document.querySelector(`.health-btn[data-v="${data.health}"]`);
+    if (hb) hb.classList.add('active');
+  }
+
+  // Note
+  document.getElementById('noteField').value = data['note'] || '';
+}
+
+// ============================================================
+// Collect Answers
+// ============================================================
+function collectAnswers() {
+  const ans = {};
+
+  // Single selects
+  ['distance','angle','lighting','colorchecker','leaf_color','density',
+   'uniformity','ground','heading','stage_guess'].forEach(field => {
+    const container = document.querySelector(`[data-field="${field}"]`);
+    const active = container?.querySelector('.chip.active');
+    if (active) ans[field] = active.dataset.v;
+  });
+
+  // Multi (abnormal)
+  const abContainer = document.querySelector('[data-field="abnormal"]');
+  const abActive = abContainer?.querySelectorAll('.chip.active');
+  if (abActive && abActive.length > 0) {
+    ans['abnormal'] = Array.from(abActive).map(c => c.dataset.v);
+  }
+
+  // Health
+  const hActive = document.querySelector('.health-btn.active');
+  if (hActive) ans['health'] = parseInt(hActive.dataset.v);
+
+  // Note
+  const note = document.getElementById('noteField').value.trim();
+  if (note) ans['note'] = note;
+
+  return ans;
+}
+
+// ============================================================
+// Actions
+// ============================================================
+function setHealth(v) {
+  document.querySelectorAll('.health-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.health-btn[data-v="${v}"]`).classList.add('active');
+}
+
+function saveAndNext() {
+  const imgPath = images[current];
+  const ans = collectAnswers();
+
+  if (Object.keys(ans).length === 0) {
+    showToast('請至少回答一題再儲存');
+    return;
+  }
+
+  ans['_timestamp'] = new Date().toISOString();
+  annotations[imgPath] = ans;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+  showToast('✓ 已儲存');
+
+  if (current < images.length - 1) {
+    current++;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    showToast('🎉 全部完成！請匯出 JSON');
+  }
+}
+
+function skipAndNext() {
+  if (current < images.length - 1) {
+    current++;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function go(delta) {
+  const next = current + delta;
+  if (next >= 0 && next < images.length) {
+    current = next;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ============================================================
+// Import / Export
+// ============================================================
+function exportData() {
+  const blob = new Blob([JSON.stringify(annotations, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vqa_annotations_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('已匯出 JSON 檔案');
+}
+
+function importData() {
+  document.getElementById('importInput').click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      const count = Object.keys(imported).length;
+      annotations = { ...annotations, ...imported };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+      render();
+      showToast(`已匯入 ${count} 筆標註`);
+    } catch(err) {
+      showToast('JSON 格式錯誤');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ============================================================
+// Toast
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ============================================================
+// Keyboard shortcuts
+// ============================================================
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') go(-1);
+  if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') go(1);
+  if (e.key === 'Enter') { e.preventDefault(); saveAndNext(); }
+});
+
+// ============================================================
+// Start
+// ============================================================
+init();
+</script>
+</body>
+</html>
