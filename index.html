@@ -340,6 +340,63 @@ body {
 .completion h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--c-accent); }
 .completion p { color: var(--c-text2); }
 
+/* === Name Modal === */
+.name-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+.name-modal {
+  background: var(--c-card);
+  border-radius: 10px;
+  padding: 32px 28px 24px;
+  width: 340px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.name-modal h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.name-modal p {
+  font-size: 0.82rem;
+  color: var(--c-text2);
+  line-height: 1.5;
+}
+.name-input {
+  width: 100%;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  transition: border-color 0.15s;
+  background: #faf9f6;
+}
+.name-input:focus { outline: none; border-color: var(--c-accent); }
+.name-confirm-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--c-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.name-confirm-btn:hover { background: var(--c-accent2); }
+.name-confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* Keyboard hint */
 .kbd {
   display: inline-block;
@@ -569,6 +626,17 @@ body {
   </div>
 </div>
 
+<!-- Name Modal -->
+<div class="name-modal-overlay" id="nameModal">
+  <div class="name-modal">
+    <h2>🌾 水稻田間影像標註工具</h2>
+    <p>請輸入您的姓名，將一併記錄於每筆標註及送出資料中。</p>
+    <input class="name-input" id="nameInput" type="text" placeholder="例如：王大明" maxlength="30"
+           oninput="document.getElementById('nameConfirmBtn').disabled = !this.value.trim()">
+    <button class="name-confirm-btn" id="nameConfirmBtn" disabled onclick="confirmName()">開始標註</button>
+  </div>
+</div>
+
 <!-- Loading -->
 <div class="loading-screen" id="loadingScreen">
   <p>正在載入圖片清單...</p>
@@ -594,13 +662,32 @@ body {
 let images = [];
 let current = 0;
 let annotations = {};
+let expertName = '';
 const STORAGE_KEY = 'rice_vqa_annotations';
+const NAME_KEY = 'rice_vqa_expert_name';
 
 // ============================================================
 // Init
 // ============================================================
-async function init() {
-  // Try load from localStorage
+function init() {
+  // Pre-fill name from last session
+  const savedName = localStorage.getItem(NAME_KEY);
+  if (savedName) {
+    const input = document.getElementById('nameInput');
+    input.value = savedName;
+    document.getElementById('nameConfirmBtn').disabled = false;
+  }
+  // Show name modal — confirmName() will proceed after
+}
+
+async function confirmName() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) return;
+  expertName = name;
+  localStorage.setItem(NAME_KEY, name);
+  document.getElementById('nameModal').style.display = 'none';
+
+  // Load annotations
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     try { annotations = JSON.parse(saved); } catch(e) { annotations = {}; }
@@ -814,6 +901,7 @@ function saveAndNext() {
   }
 
   ans['_timestamp'] = new Date().toISOString();
+  if (expertName) ans['_expert'] = expertName;
   annotations[imgPath] = ans;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
   showToast('✓ 已儲存');
@@ -862,7 +950,8 @@ const FIELD_LABELS = {
   abnormal:    '異常狀況',
   stage_guess: '生育階段',
   diseases:    '疾病或其他狀況',
-  _timestamp:  '標註時間'
+  _timestamp:  '標註時間',
+  _expert:     '標註者'
 };
 
 const VALUE_LABELS = {
@@ -923,6 +1012,7 @@ async function uploadData() {
 
   const payload = {
     fileName: `vqa_annotations_${new Date().toISOString().slice(0,10)}_${Math.floor(Math.random()*1000)}.json`,
+    expertName: expertName,
     content: translateAnnotations(annotations)
   };
 
@@ -979,6 +1069,10 @@ function showToast(msg) {
 // ============================================================
 // Keyboard shortcuts
 // ============================================================
+document.getElementById('nameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); confirmName(); }
+});
+
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
   if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') go(-1);
