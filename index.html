@@ -241,38 +241,12 @@ body {
   border-color: var(--c-accent);
 }
 
-/* === Health Rating === */
-.health-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.health-btn {
-  width: 44px;
-  height: 38px;
-  border-radius: var(--radius);
-  border: 1px solid var(--c-border);
-  background: var(--c-chip);
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  font-family: inherit;
-  transition: all 0.12s;
-}
-.health-btn:hover { border-color: #aaa; }
-.health-btn.active { color: #fff; border-color: transparent; }
-.health-btn[data-v="1"].active { background: var(--c-danger); }
-.health-btn[data-v="2"].active { background: #e67e22; }
-.health-btn[data-v="3"].active { background: var(--c-warn); }
-.health-btn[data-v="4"].active { background: #7dbb42; }
-.health-btn[data-v="5"].active { background: var(--c-success); }
-.health-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--c-na);
-  margin-top: 2px;
-  padding: 0 2px;
+/* === Disease row label === */
+.disease-label {
+  font-size: 0.82rem;
+  color: var(--c-text2);
+  min-width: 68px;
+  flex-shrink: 0;
 }
 
 /* === Textarea === */
@@ -538,19 +512,48 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">12</span> 整體健康評分</div>
-          <div class="health-row" data-field="health">
-            <button class="health-btn" data-v="1" onclick="setHealth(1)">1</button>
-            <button class="health-btn" data-v="2" onclick="setHealth(2)">2</button>
-            <button class="health-btn" data-v="3" onclick="setHealth(3)">3</button>
-            <button class="health-btn" data-v="4" onclick="setHealth(4)">4</button>
-            <button class="health-btn" data-v="5" onclick="setHealth(5)">5</button>
+          <div class="q-label"><span class="q-num">12</span> 葉稻熱病</div>
+          <div class="chips" data-field="leaf_blast" data-mode="single">
+            <div class="chip" data-v="none">無</div>
+            <div class="chip" data-v="mild">輕微</div>
+            <div class="chip" data-v="moderate">中度</div>
+            <div class="chip" data-v="severe">重度</div>
+            <div class="chip na" data-v="na">無法判斷</div>
           </div>
-          <div class="health-labels"><span>很差</span><span>待改善</span><span>普通</span><span>良好</span><span>優秀</span></div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">13</span> 備註（選填，任何你覺得值得記錄的觀察）</div>
-          <textarea class="note-area" id="noteField" placeholder="例如：第3排有明顯缺株、照片偏色嚴重不宜判斷葉色..."></textarea>
+          <div class="q-label"><span class="q-num">13</span> 穗稻熱病</div>
+          <div class="chips" data-field="neck_blast" data-mode="single">
+            <div class="chip" data-v="none">無</div>
+            <div class="chip" data-v="mild">輕微</div>
+            <div class="chip" data-v="moderate">中度</div>
+            <div class="chip" data-v="severe">重度</div>
+            <div class="chip na" data-v="na">無法判斷</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">14</span> 紋枯病</div>
+          <div class="chips" data-field="sheath_blight" data-mode="single">
+            <div class="chip" data-v="none">無</div>
+            <div class="chip" data-v="mild">輕微</div>
+            <div class="chip" data-v="moderate">中度</div>
+            <div class="chip" data-v="severe">重度</div>
+            <div class="chip na" data-v="na">無法判斷</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">15</span> 白葉枯病</div>
+          <div class="chips" data-field="bacterial_blight" data-mode="single">
+            <div class="chip" data-v="none">無</div>
+            <div class="chip" data-v="mild">輕微</div>
+            <div class="chip" data-v="moderate">中度</div>
+            <div class="chip" data-v="severe">重度</div>
+            <div class="chip na" data-v="na">無法判斷</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">16</span> 其他疾病或狀況（選填）</div>
+          <textarea class="note-area" id="diseaseOtherField" placeholder="例如：徒長病、稻曲病、福壽螺危害..."></textarea>
         </div>
       </div>
     </div>
@@ -746,15 +749,18 @@ function restoreAnswers(imgPath) {
     });
   }
 
-  // Health
-  document.querySelectorAll('.health-btn').forEach(b => b.classList.remove('active'));
-  if (data['health']) {
-    const hb = document.querySelector(`.health-btn[data-v="${data.health}"]`);
-    if (hb) hb.classList.add('active');
-  }
-
-  // Note
-  document.getElementById('noteField').value = data['note'] || '';
+  // Disease classification
+  const diseaseFields = ['leaf_blast', 'neck_blast', 'sheath_blight', 'bacterial_blight'];
+  const savedDiseases = data['diseases'] || {};
+  diseaseFields.forEach(field => {
+    const val = savedDiseases[field];
+    if (val) {
+      const container = document.querySelector(`[data-field="${field}"]`);
+      const chip = container?.querySelector(`[data-v="${val}"]`);
+      if (chip) chip.classList.add('active');
+    }
+  });
+  document.getElementById('diseaseOtherField').value = savedDiseases['other'] || '';
 }
 
 // ============================================================
@@ -778,13 +784,17 @@ function collectAnswers() {
     ans['abnormal'] = Array.from(abActive).map(c => c.dataset.v);
   }
 
-  // Health
-  const hActive = document.querySelector('.health-btn.active');
-  if (hActive) ans['health'] = parseInt(hActive.dataset.v);
-
-  // Note
-  const note = document.getElementById('noteField').value.trim();
-  if (note) ans['note'] = note;
+  // Disease classification
+  const diseaseFields = ['leaf_blast', 'neck_blast', 'sheath_blight', 'bacterial_blight'];
+  const diseases = {};
+  diseaseFields.forEach(field => {
+    const container = document.querySelector(`[data-field="${field}"]`);
+    const active = container?.querySelector('.chip.active');
+    if (active) diseases[field] = active.dataset.v;
+  });
+  const diseaseOther = document.getElementById('diseaseOtherField').value.trim();
+  if (diseaseOther) diseases['other'] = diseaseOther;
+  if (Object.keys(diseases).length > 0) ans['diseases'] = diseases;
 
   return ans;
 }
@@ -792,11 +802,6 @@ function collectAnswers() {
 // ============================================================
 // Actions
 // ============================================================
-function setHealth(v) {
-  document.querySelectorAll('.health-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.health-btn[data-v="${v}"]`).classList.add('active');
-}
-
 function saveAndNext() {
   const imgPath = images[current];
   const ans = collectAnswers();
