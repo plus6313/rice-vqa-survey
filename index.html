@@ -363,7 +363,7 @@ body {
   <div class="header-right">
     <span id="progressText" style="font-size:0.8rem;color:#999;"></span>
     <button class="hbtn" onclick="importData()">匯入</button>
-    <button class="hbtn" onclick="exportData()">匯出 JSON</button>
+    <button class="hbtn" onclick="uploadData()" id="uploadBtn">送出</button>
   </div>
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 </div>
@@ -397,8 +397,8 @@ body {
           <div class="q-label"><span class="q-num">1</span> 拍攝距離</div>
           <div class="chips" data-field="distance" data-mode="single">
             <div class="chip" data-v="close">近距離（1-3株）</div>
-            <div class="chip" data-v="mid">中距離（一小區）</div>
-            <div class="chip" data-v="far">全景（整塊田）</div>
+            <div class="chip" data-v="mid">中距離（5-15株）</div>
+            <div class="chip" data-v="far">全景（數十株到整片田）</div>
           </div>
         </div>
         <div class="q-group">
@@ -435,11 +435,10 @@ body {
         <div class="q-group">
           <div class="q-label"><span class="q-num">5</span> 葉色</div>
           <div class="chips" data-field="leaf_color" data-mode="single">
-            <div class="chip" data-v="dark_green">深綠</div>
-            <div class="chip" data-v="normal_green">正常綠</div>
-            <div class="chip" data-v="light_green">偏黃綠</div>
-            <div class="chip" data-v="yellow">明顯黃化</div>
-            <div class="chip" data-v="mixed">黃綠交雜</div>
+            <div class="chip" data-v="above5">≥5（濃綠）</div>
+            <div class="chip" data-v="level4">4（略為濃綠）</div>
+            <div class="chip" data-v="level3">3–3.5（正常綠）</div>
+            <div class="chip" data-v="below3">&lt;3（黃綠）</div>
             <div class="chip na" data-v="na">無法判斷</div>
           </div>
         </div>
@@ -464,20 +463,20 @@ body {
         <div class="q-group">
           <div class="q-label"><span class="q-num">8</span> 地面 / 水位</div>
           <div class="chips" data-field="ground" data-mode="single">
-            <div class="chip" data-v="flooded">明顯積水</div>
-            <div class="chip" data-v="moist">濕潤</div>
-            <div class="chip" data-v="dry">乾燥</div>
-            <div class="chip" data-v="cracked">有裂縫</div>
+            <div class="chip" data-v="dry">乾（無積水）</div>
+            <div class="chip" data-v="low">低（1–3 cm）</div>
+            <div class="chip" data-v="mid">中（3–6 cm）</div>
+            <div class="chip" data-v="high">高（&gt;6 cm）</div>
             <div class="chip na" data-v="na">看不到地面</div>
           </div>
         </div>
         <div class="q-group">
           <div class="q-label"><span class="q-num">9</span> 抽穗狀況</div>
           <div class="chips" data-field="heading" data-mode="single">
-            <div class="chip" data-v="none">未抽穗</div>
-            <div class="chip" data-v="few">少數抽穗</div>
-            <div class="chip" data-v="most">多數抽穗</div>
-            <div class="chip" data-v="all">全部抽穗</div>
+            <div class="chip" data-v="none">未抽穗（0%）</div>
+            <div class="chip" data-v="few">少數（1–25%）</div>
+            <div class="chip" data-v="most">多數（25–75%）</div>
+            <div class="chip" data-v="all">全部（&gt;75%）</div>
             <div class="chip na" data-v="na">無法判斷</div>
           </div>
         </div>
@@ -502,12 +501,15 @@ body {
         <div class="q-group">
           <div class="q-label"><span class="q-num">11</span> 生育階段（純看照片猜測）</div>
           <div class="chips" data-field="stage_guess" data-mode="single">
-            <div class="chip" data-v="seedling">插秧初期</div>
-            <div class="chip" data-v="tillering">分蘗期</div>
+            <div class="chip" data-v="establishment">成活期</div>
+            <div class="chip" data-v="early_tillering">分蘗始期</div>
+            <div class="chip" data-v="peak_tillering">分蘗盛期</div>
+            <div class="chip" data-v="eff_tillering_end">有效分蘗終期</div>
+            <div class="chip" data-v="panicle_init">幼穗形成始期</div>
             <div class="chip" data-v="booting">孕穗期</div>
-            <div class="chip" data-v="heading">抽穗期</div>
-            <div class="chip" data-v="filling">灌漿期</div>
-            <div class="chip" data-v="mature">成熟期</div>
+            <div class="chip" data-v="heading_flowering">抽穗開花期</div>
+            <div class="chip" data-v="filling">灌漿期（乳熟/糊熟期）</div>
+            <div class="chip" data-v="maturity">完熟期（黃熟/完熟期）</div>
             <div class="chip na" data-v="na">不確定</div>
           </div>
         </div>
@@ -843,17 +845,101 @@ function go(delta) {
 }
 
 // ============================================================
-// Import / Export
+// Import / Upload
 // ============================================================
-function exportData() {
-  const blob = new Blob([JSON.stringify(annotations, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `vqa_annotations_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('已匯出 JSON 檔案');
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyXvEjspow8WAOAUD7YV-nV0eWdSgziEn_9jzO1nvkFcDrZ3INfdPfBx7NhgduLeB6x/exec';
+
+const FIELD_LABELS = {
+  distance:    '拍攝距離',
+  angle:       '拍攝角度',
+  lighting:    '光線品質',
+  colorchecker:'校色卡',
+  leaf_color:  '葉色',
+  density:     '植株密度',
+  uniformity:  '生長整齊度',
+  ground:      '地面/水位',
+  heading:     '抽穗狀況',
+  abnormal:    '異常狀況',
+  stage_guess: '生育階段',
+  diseases:    '疾病或其他狀況',
+  _timestamp:  '標註時間'
+};
+
+const VALUE_LABELS = {
+  distance:    { close:'近距離（1-3株）', mid:'中距離（5-15株）', far:'全景（數十株到整片田）' },
+  angle:       { side:'水平側拍', oblique:'斜上方俯拍', topdown:'正上方鳥瞰' },
+  lighting:    { good:'良好', backlit:'逆光', overexposed:'過曝', dark:'偏暗' },
+  colorchecker:{ yes:'可見', no:'未見' },
+  leaf_color:  { above5:'≥5（濃綠）', level4:'4（略為濃綠）', level3:'3–3.5（正常綠）', below3:'<3（黃綠）', na:'無法判斷' },
+  density:     { dense:'茂密', normal:'適中', sparse:'稀疏', na:'無法判斷' },
+  uniformity:  { uniform:'整齊', slight:'略不齊', uneven:'差異大', na:'無法判斷' },
+  ground:      { dry:'乾（無積水）', low:'低（1–3 cm）', mid:'中（3–6 cm）', high:'高（>6 cm）', na:'看不到地面' },
+  heading:     { none:'未抽穗（0%）', few:'少數（1–25%）', most:'多數（25–75%）', all:'全部（>75%）', na:'無法判斷' },
+  abnormal:    { none:'無異常', disease:'疑似病斑', pest:'蟲害痕跡', lodging:'倒伏', weed:'雜草', other:'其他' },
+  stage_guess: { establishment:'成活期', early_tillering:'分蘗始期', peak_tillering:'分蘗盛期', eff_tillering_end:'有效分蘗終期', panicle_init:'幼穗形成始期', booting:'孕穗期', heading_flowering:'抽穗開花期', filling:'灌漿期（乳熟/糊熟期）', maturity:'完熟期（黃熟/完熟期）', na:'不確定' },
+  diseases:    { none:'無', mild:'輕微', moderate:'中度', severe:'重度', na:'無法判斷' }
+};
+
+const DISEASE_FIELD_LABELS = {
+  leaf_blast:       '葉稻熱病',
+  neck_blast:       '穗稻熱病',
+  sheath_blight:    '紋枯病',
+  bacterial_blight: '白葉枯病',
+  other:            '其他'
+};
+
+function translateAnnotations(raw) {
+  const result = {};
+  for (const [imgKey, data] of Object.entries(raw)) {
+    const row = {};
+    for (const [field, value] of Object.entries(data)) {
+      const label = FIELD_LABELS[field] || field;
+      if (field === 'diseases' && value && typeof value === 'object') {
+        const diseases = {};
+        for (const [df, dv] of Object.entries(value)) {
+          const dlabel = DISEASE_FIELD_LABELS[df] || df;
+          diseases[dlabel] = df === 'other' ? dv : (VALUE_LABELS.diseases[dv] ?? dv);
+        }
+        row[label] = diseases;
+      } else if (field === 'abnormal' && Array.isArray(value)) {
+        row[label] = value.map(v => VALUE_LABELS.abnormal[v] ?? v);
+      } else {
+        row[label] = (VALUE_LABELS[field]?.[value]) ?? value;
+      }
+    }
+    result[imgKey] = row;
+  }
+  return result;
+}
+
+async function uploadData() {
+  const count = Object.keys(annotations).filter(k => images.includes(k)).length;
+  if (count === 0) { showToast('尚無標註資料可送出'); return; }
+
+  const btn = document.getElementById('uploadBtn');
+  btn.disabled = true;
+  btn.textContent = '送出中…';
+  showToast('上傳中，請稍候…');
+
+  const payload = {
+    fileName: `vqa_annotations_${new Date().toISOString().slice(0,10)}_${Math.floor(Math.random()*1000)}.json`,
+    content: translateAnnotations(annotations)
+  };
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    showToast(`✓ 上傳請求已送出，請確認雲端硬碟（${count} 筆）`);
+  } catch (err) {
+    showToast('送出失敗，請確認網路連線');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '送出';
+  }
 }
 
 function importData() {
