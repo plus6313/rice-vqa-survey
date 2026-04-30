@@ -53,6 +53,87 @@ body {
 .header-left { display: flex; align-items: center; gap: 12px; }
 .header h1 { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.5px; }
 .header-right { display: flex; align-items: center; gap: 8px; }
+.progress-summary {
+  position: relative;
+}
+.progress-trigger {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #aaa;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+}
+.progress-trigger:hover,
+.progress-trigger:focus {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  outline: none;
+}
+.progress-panel {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 500;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(70vh, 520px);
+  overflow: auto;
+  display: none;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.28);
+}
+.progress-summary:hover .progress-panel,
+.progress-summary:focus-within .progress-panel,
+.progress-summary.open .progress-panel {
+  display: block;
+}
+.progress-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  text-align: left;
+}
+.progress-item:hover,
+.progress-item.current {
+  background: #f3f0e8;
+}
+.progress-item .idx {
+  color: #777;
+  flex: 0 0 30px;
+  font-variant-numeric: tabular-nums;
+}
+.progress-item .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.progress-item.done .name,
+.progress-item.done .status {
+  color: var(--c-success);
+}
+.progress-item.pending .name,
+.progress-item.pending .status {
+  color: var(--c-danger);
+}
+.progress-item .status {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
 .hbtn {
   background: transparent;
   border: 1px solid rgba(255,255,255,0.2);
@@ -420,8 +501,21 @@ body {
   transition: all 0.3s;
   z-index: 200;
   pointer-events: none;
+  max-width: min(92vw, 560px);
+  text-align: center;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success {
+  background: #1f5f36;
+  color: #f3fff6;
+  box-shadow: 0 12px 30px rgba(31,95,54,0.28);
+}
+.toast.large {
+  padding: 16px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+}
 
 /* === Loading === */
 .loading-screen {
@@ -521,7 +615,12 @@ body {
     <h1>🌾 水稻田間影像標註工具</h1>
   </div>
   <div class="header-right">
-    <span id="progressText" style="font-size:0.8rem;color:#999;"></span>
+    <div class="progress-summary" id="progressSummary">
+      <button type="button" class="progress-trigger" onclick="toggleProgressPanel(event)">
+        <span id="progressText"></span>
+      </button>
+      <div class="progress-panel" id="progressPanel"></div>
+    </div>
     <button class="hbtn" onclick="importData()">匯入</button>
     <button class="hbtn" onclick="uploadData()" id="uploadBtn">送出</button>
   </div>
@@ -838,6 +937,8 @@ let annotations = {};
 let expertName = '';
 const STORAGE_KEY = 'rice_vqa_annotations';
 const NAME_KEY = 'rice_vqa_expert_name';
+const LAST_UPLOAD_KEY = 'rice_vqa_last_upload_time';
+let toastTimer = null;
 
 // ============================================================
 // Init
@@ -850,6 +951,7 @@ function init() {
     input.value = savedName;
     document.getElementById('nameConfirmBtn').disabled = false;
   }
+  updateUploadButtonLabel();
   // Show name modal — confirmName() will proceed after
 }
 
@@ -974,9 +1076,55 @@ function render() {
   const done = Object.keys(annotations).filter(k => images.includes(k)).length;
   document.getElementById('progressText').textContent = `${done}/${images.length} 已完成`;
   document.getElementById('progressFill').style.width = `${(done/images.length)*100}%`;
+  renderProgressPanel();
 
   // Restore saved answers
   restoreAnswers(imgPath);
+}
+
+function renderProgressPanel() {
+  const panel = document.getElementById('progressPanel');
+  if (!panel) return;
+
+  panel.innerHTML = images.map((imgPath, index) => {
+    const done = Boolean(annotations[imgPath]);
+    const fname = imgPath.split('/').pop();
+    const safeName = escapeHtml(fname);
+    const cls = [
+      'progress-item',
+      done ? 'done' : 'pending',
+      index === current ? 'current' : ''
+    ].filter(Boolean).join(' ');
+    return `
+      <button type="button" class="${cls}" onclick="jumpToImage(${index})">
+        <span class="idx">${index + 1}.</span>
+        <span class="name" title="${safeName}">${safeName}</span>
+        <span class="status">${done ? '已標註' : '未標註'}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+function toggleProgressPanel(event) {
+  event.stopPropagation();
+  document.getElementById('progressSummary')?.classList.toggle('open');
+}
+
+function jumpToImage(index) {
+  current = index;
+  document.getElementById('progressSummary')?.classList.remove('open');
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function restoreAnswers(imgPath) {
@@ -1083,7 +1231,7 @@ function saveAndNext() {
     return;
   }
 
-  ans['_timestamp'] = new Date().toISOString();
+  ans['_timestamp'] = formatTaipeiIso();
   if (expertName) ans['_expert'] = expertName;
   annotations[imgPath] = ans;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
@@ -1188,8 +1336,68 @@ function translateAnnotations(raw) {
   return result;
 }
 
+function getCompletedAnnotations() {
+  return Object.fromEntries(
+    Object.entries(annotations).filter(([imgKey]) => images.includes(imgKey))
+  );
+}
+
+function getTaipeiDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('zh-TW', {
+    timeZone: 'Asia/Taipei',
+    calendar: 'gregory',
+    numberingSystem: 'latn',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(date);
+
+  return Object.fromEntries(parts.map(part => [part.type, part.value]));
+}
+
+function formatTaipeiIso(date = new Date()) {
+  const p = getTaipeiDateParts(date);
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}+08:00`;
+}
+
+function formatTaipeiFileTime(date = new Date()) {
+  const p = getTaipeiDateParts(date);
+  return `${p.year}${p.month}${p.day}_${p.hour}${p.minute}${p.second}`;
+}
+
+function formatTaipeiShortTime(date = new Date()) {
+  const p = getTaipeiDateParts(date);
+  return `${p.hour}:${p.minute}`;
+}
+
+function sanitizeFileNamePart(value) {
+  return String(value || '未填姓名')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\s+/g, '')
+    || '未填姓名';
+}
+
+function updateUploadButtonLabel() {
+  const btn = document.getElementById('uploadBtn');
+  if (!btn) return;
+
+  const lastUploadAt = localStorage.getItem(LAST_UPLOAD_KEY);
+  if (!lastUploadAt) {
+    btn.textContent = '送出';
+    return;
+  }
+
+  btn.textContent = `再次送出(前次送出時間 ${lastUploadAt})`;
+}
+
 async function uploadData() {
-  const count = Object.keys(annotations).filter(k => images.includes(k)).length;
+  const completedAnnotations = getCompletedAnnotations();
+  const count = Object.keys(completedAnnotations).length;
   if (count === 0) { showToast('尚無標註資料可送出'); return; }
 
   const btn = document.getElementById('uploadBtn');
@@ -1197,10 +1405,25 @@ async function uploadData() {
   btn.textContent = '送出中…';
   showToast('上傳中，請稍候…');
 
+  const now = new Date();
+  const uploadedAt = formatTaipeiIso(now);
+  const uploadFileTime = formatTaipeiFileTime(now);
+  const expertFileName = sanitizeFileNamePart(expertName);
+  const translatedAnnotations = translateAnnotations(completedAnnotations);
+  const fileName = `${expertFileName}_${uploadFileTime}_${count}筆.json`;
+  const content = {
+    uploadedAt,
+    expertName,
+    count,
+    annotations: translatedAnnotations
+  };
   const payload = {
-    fileName: `vqa_annotations_${new Date().toISOString().slice(0,10)}_${Math.floor(Math.random()*1000)}.json`,
-    expertName: expertName,
-    content: translateAnnotations(annotations)
+    fileName,
+    expertName,
+    count,
+    content: {
+      [fileName]: content
+    }
   };
 
   try {
@@ -1210,12 +1433,15 @@ async function uploadData() {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
-    showToast(`✓ 上傳請求已送出，請確認雲端硬碟（${count} 筆）`);
+    const lastUploadTime = formatTaipeiShortTime(now);
+    localStorage.setItem(LAST_UPLOAD_KEY, lastUploadTime);
+    updateUploadButtonLabel();
+    showToast(`成功上傳，已填寫 ${count} 筆資料`, { type: 'success', large: true, duration: 4200 });
   } catch (err) {
     showToast('送出失敗，請確認網路連線');
   } finally {
     btn.disabled = false;
-    btn.textContent = '送出';
+    updateUploadButtonLabel();
   }
 }
 
@@ -1246,11 +1472,18 @@ function handleImport(e) {
 // ============================================================
 // Toast
 // ============================================================
-function showToast(msg) {
+function showToast(msg, options = {}) {
   const t = document.getElementById('toast');
+  const duration = options.duration ?? 1800;
   t.textContent = msg;
+  t.className = 'toast';
+  if (options.type) t.classList.add(options.type);
+  if (options.large) t.classList.add('large');
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 1800);
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+  }, duration);
 }
 
 // ============================================================
@@ -1258,6 +1491,11 @@ function showToast(msg) {
 // ============================================================
 document.getElementById('nameInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); confirmName(); }
+});
+
+document.addEventListener('click', (e) => {
+  const summary = document.getElementById('progressSummary');
+  if (summary && !summary.contains(e.target)) summary.classList.remove('open');
 });
 
 document.addEventListener('keydown', (e) => {
