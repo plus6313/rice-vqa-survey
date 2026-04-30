@@ -155,6 +155,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: relative;
+  z-index: 20;
 }
 
 /* === Section Card === */
@@ -163,7 +165,7 @@ body {
   border: 1px solid var(--c-border);
   border-radius: 8px;
   box-shadow: var(--shadow);
-  overflow: hidden;
+  overflow: visible;
 }
 .section-header {
   padding: 10px 16px;
@@ -173,6 +175,7 @@ body {
   text-transform: uppercase;
   color: var(--c-text2);
   border-bottom: 1px solid var(--c-border);
+  border-radius: 8px 8px 0 0;
   background: #faf8f4;
 }
 .section-body { padding: 14px 16px; }
@@ -199,6 +202,100 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.help-icon {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  background: #faf8f4;
+  color: var(--c-text2);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+.help-icon:hover,
+.help-icon:focus {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+  outline: none;
+}
+.help-box {
+  position: absolute;
+  top: 24px;
+  right: 0;
+  z-index: 1000;
+  width: min(640px, calc(100vw - 40px));
+  max-height: 82vh;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-card);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.24);
+  color: var(--c-text);
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.5;
+  display: none;
+}
+.help-box.large {
+  width: min(960px, calc(100vw - 40px));
+}
+.help-box.large img {
+  max-height: 76vh;
+}
+.help-box img {
+  width: 100%;
+  max-height: 68vh;
+  display: block;
+  margin-top: 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  object-fit: contain;
+}
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.help-example {
+  display: block;
+}
+.help-grid img {
+  height: auto;
+  max-height: none;
+  margin-top: 0;
+  object-fit: contain;
+  background: #f7f5ef;
+}
+.help-box.large .help-grid img {
+  max-height: none;
+}
+.help-caption {
+  display: block;
+  margin-top: 3px;
+  color: var(--c-text2);
+  font-size: 0.72rem;
+  text-align: center;
+}
+.help-tip:hover .help-box,
+.help-tip:focus-within .help-box {
+  display: block;
+}
+@media (max-width: 960px) {
+  .help-box {
+    left: 0;
+    right: auto;
+  }
 }
 
 /* === Chip Selector === */
@@ -234,6 +331,12 @@ body {
   background: #888;
   color: #fff;
   border-color: #888;
+}
+.chip.wide {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.4;
 }
 .chip.multi.active {
   background: #e8f5e9;
@@ -451,19 +554,47 @@ body {
       <div class="section-header">A 拍攝條件</div>
       <div class="section-body">
         <div class="q-group">
-          <div class="q-label"><span class="q-num">1</span> 拍攝距離</div>
+          <div class="q-label">
+            <span class="q-num">1</span> 拍攝距離
+            <span class="help-tip">
+              <button type="button" class="help-icon" aria-label="拍攝距離說明">?</button>
+              <span class="help-box large" role="tooltip">
+                依畫面中可見的水稻株數與取景範圍判斷拍攝距離。
+                <span class="help-grid">
+                  <span class="help-example"><img src="rule_image/近距離.png" alt="近距離範例"><span class="help-caption">近距離</span></span>
+                  <span class="help-example"><img src="rule_image/中距離.png" alt="中距離範例"><span class="help-caption">中距離</span></span>
+                  <span class="help-example"><img src="rule_image/全景.png" alt="全景範例"><span class="help-caption">全景</span></span>
+                </span>
+              </span>
+            </span>
+          </div>
           <div class="chips" data-field="distance" data-mode="single">
-            <div class="chip" data-v="close">近距離（1-3株）</div>
-            <div class="chip" data-v="mid">中距離（5-15株）</div>
-            <div class="chip" data-v="far">全景（數十株到整片田）</div>
+            <div class="chip" data-v="close">近距離（1-15株）</div>
+            <div class="chip" data-v="mid">中距離（15-30株）</div>
+            <div class="chip" data-v="far">全景（30多株到整片田）</div>
+            <div class="chip na" data-v="na">不確定</div>
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">2</span> 拍攝角度</div>
+          <div class="q-label">
+            <span class="q-num">2</span> 拍攝角度
+            <span class="help-tip">
+              <button type="button" class="help-icon" aria-label="拍攝角度說明">?</button>
+              <span class="help-box large" role="tooltip">
+                依相機視角相對於稻株與田面的位置判斷。
+                <span class="help-grid">
+                  <span class="help-example"><img src="rule_image/水平側拍.png" alt="水平側拍範例"><span class="help-caption">水平側拍</span></span>
+                  <span class="help-example"><img src="rule_image/斜上方俯拍.png" alt="斜上方俯拍範例"><span class="help-caption">斜上方俯拍</span></span>
+                  <span class="help-example"><img src="rule_image/正上方鳥瞰.png" alt="正上方鳥瞰範例"><span class="help-caption">正上方鳥瞰</span></span>
+                </span>
+              </span>
+            </span>
+          </div>
           <div class="chips" data-field="angle" data-mode="single">
             <div class="chip" data-v="side">水平側拍</div>
             <div class="chip" data-v="oblique">斜上方俯拍</div>
             <div class="chip" data-v="topdown">正上方鳥瞰</div>
+            <div class="chip na" data-v="na">不確定</div>
           </div>
         </div>
         <div class="q-group">
@@ -473,13 +604,29 @@ body {
             <div class="chip" data-v="backlit">逆光</div>
             <div class="chip" data-v="overexposed">過曝</div>
             <div class="chip" data-v="dark">偏暗</div>
+            <div class="chip na" data-v="na">不確定</div>
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">4</span> 校色卡</div>
-          <div class="chips" data-field="colorchecker" data-mode="single">
-            <div class="chip" data-v="yes">可見</div>
-            <div class="chip" data-v="no">未見</div>
+          <div class="q-label">
+            <span class="q-num">4</span> 校準工具
+            <span class="help-tip">
+              <button type="button" class="help-icon" aria-label="校準工具說明">?</button>
+              <span class="help-box large" role="tooltip">
+                判斷照片中主要可見的校準工具類型。
+                <span class="help-grid">
+                  <span class="help-example"><img src="rule_image/株高方格尺.png" alt="株高方格尺範例"><span class="help-caption">株高方格尺</span></span>
+                  <span class="help-example"><img src="rule_image/24色校色卡.png" alt="24色校色卡範例"><span class="help-caption">24色校色卡</span></span>
+                  <span class="help-example"><img src="rule_image/葉色卡.png" alt="葉色卡範例"><span class="help-caption">葉色卡</span></span>
+                </span>
+              </span>
+            </span>
+          </div>
+          <div class="chips" data-field="calibration_tool" data-mode="single">
+            <div class="chip" data-v="height_grid">株高方格尺</div>
+            <div class="chip" data-v="color_checker_24">24色校色卡</div>
+            <div class="chip" data-v="leaf_color_card">葉色卡</div>
+            <div class="chip na" data-v="na">不確定</div>
           </div>
         </div>
       </div>
@@ -490,7 +637,16 @@ body {
       <div class="section-header">B 視覺觀察</div>
       <div class="section-body">
         <div class="q-group">
-          <div class="q-label"><span class="q-num">5</span> 葉色</div>
+          <div class="q-label">
+            <span class="q-num">5</span> 葉色
+            <span class="help-tip">
+              <button type="button" class="help-icon" aria-label="葉色說明">?</button>
+              <span class="help-box" role="tooltip">
+                依影像中主要水稻冠層的整體顏色判斷，若光線、陰影或遮蔽影響明顯，請選「無法判斷」。
+                <img src="rule_image/葉色.png" alt="葉色判斷範例">
+              </span>
+            </span>
+          </div>
           <div class="chips" data-field="leaf_color" data-mode="single">
             <div class="chip" data-v="above5">≥5（濃綠）</div>
             <div class="chip" data-v="level4">4（略為濃綠）</div>
@@ -528,7 +684,16 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">9</span> 抽穗狀況</div>
+          <div class="q-label"><span class="q-num">9</span> 裂縫</div>
+          <div class="chips" data-field="crack" data-mode="single">
+            <div class="chip" data-v="none">無</div>
+            <div class="chip" data-v="small">小（1公分以下）</div>
+            <div class="chip" data-v="medium">中（1-3公分）</div>
+            <div class="chip" data-v="large">過大（超過3公分）</div>
+          </div>
+        </div>
+        <div class="q-group">
+          <div class="q-label"><span class="q-num">10</span> 抽穗狀況</div>
           <div class="chips" data-field="heading" data-mode="single">
             <div class="chip" data-v="none">未抽穗（0%）</div>
             <div class="chip" data-v="few">少數（1–25%）</div>
@@ -538,7 +703,7 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">10</span> 異常狀況（可複選）</div>
+          <div class="q-label"><span class="q-num">11</span> 異常狀況（可複選）</div>
           <div class="chips" data-field="abnormal" data-mode="multi">
             <div class="chip" data-v="none">無異常</div>
             <div class="chip" data-v="disease">疑似病斑</div>
@@ -556,13 +721,21 @@ body {
       <div class="section-header">C 專家判斷</div>
       <div class="section-body">
         <div class="q-group">
-          <div class="q-label"><span class="q-num">11</span> 生育階段（純看照片猜測）</div>
+          <div class="q-label">
+            <span class="q-num">12</span> 生育階段（純看照片猜測）
+            <span class="help-tip">
+              <button type="button" class="help-icon" aria-label="生育階段說明">?</button>
+              <span class="help-box large" role="tooltip">
+                依照片中可見的株型、分蘗、抽穗與成熟程度推估；若影像資訊不足，請選「不確定」。
+                <img src="rule_image/生育階段.png" alt="生育階段判斷範例">
+              </span>
+            </span>
+          </div>
           <div class="chips" data-field="stage_guess" data-mode="single">
             <div class="chip" data-v="establishment">成活期</div>
             <div class="chip" data-v="early_tillering">分蘗始期</div>
             <div class="chip" data-v="peak_tillering">分蘗盛期</div>
-            <div class="chip" data-v="eff_tillering_end">有效分蘗終期</div>
-            <div class="chip" data-v="panicle_init">幼穗形成始期</div>
+            <div class="chip wide" data-v="max_tillering">最高分蘗期（曬田期/有效分蘗終期~幼穗形成始期）</div>
             <div class="chip" data-v="booting">孕穗期</div>
             <div class="chip" data-v="heading_flowering">抽穗開花期</div>
             <div class="chip" data-v="filling">灌漿期（乳熟/糊熟期）</div>
@@ -571,7 +744,7 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">12</span> 葉稻熱病</div>
+          <div class="q-label"><span class="q-num">13</span> 葉稻熱病</div>
           <div class="chips" data-field="leaf_blast" data-mode="single">
             <div class="chip" data-v="none">無</div>
             <div class="chip" data-v="mild">輕微</div>
@@ -581,7 +754,7 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">13</span> 穗稻熱病</div>
+          <div class="q-label"><span class="q-num">14</span> 穗稻熱病</div>
           <div class="chips" data-field="neck_blast" data-mode="single">
             <div class="chip" data-v="none">無</div>
             <div class="chip" data-v="mild">輕微</div>
@@ -591,7 +764,7 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">14</span> 紋枯病</div>
+          <div class="q-label"><span class="q-num">15</span> 紋枯病</div>
           <div class="chips" data-field="sheath_blight" data-mode="single">
             <div class="chip" data-v="none">無</div>
             <div class="chip" data-v="mild">輕微</div>
@@ -601,7 +774,7 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">15</span> 白葉枯病</div>
+          <div class="q-label"><span class="q-num">16</span> 白葉枯病</div>
           <div class="chips" data-field="bacterial_blight" data-mode="single">
             <div class="chip" data-v="none">無</div>
             <div class="chip" data-v="mild">輕微</div>
@@ -611,7 +784,7 @@ body {
           </div>
         </div>
         <div class="q-group">
-          <div class="q-label"><span class="q-num">16</span> 其他疾病或狀況（選填）</div>
+          <div class="q-label"><span class="q-num">17</span> 其他疾病或狀況（選填）</div>
           <textarea class="note-area" id="diseaseOtherField" placeholder="例如：徒長病、稻曲病、福壽螺危害..."></textarea>
         </div>
       </div>
@@ -808,14 +981,24 @@ function render() {
 
 function restoreAnswers(imgPath) {
   const data = annotations[imgPath] || {};
+  const normalizeValue = (field, value) => {
+    if (field === 'stage_guess' && (value === 'eff_tillering_end' || value === 'panicle_init')) {
+      return 'max_tillering';
+    }
+    if (field === 'calibration_tool' && !value && data.colorchecker) {
+      if (data.colorchecker === 'yes') return 'color_checker_24';
+      if (data.colorchecker === 'no') return 'na';
+    }
+    return value;
+  };
 
   // Clear all chips
   document.querySelectorAll('.chip').forEach(c => { c.classList.remove('active', 'multi'); });
 
   // Restore single-select chips
-  ['distance','angle','lighting','colorchecker','leaf_color','density',
-   'uniformity','ground','heading','stage_guess'].forEach(field => {
-    const val = data[field];
+  ['distance','angle','lighting','calibration_tool','leaf_color','density',
+   'uniformity','ground','crack','heading','stage_guess'].forEach(field => {
+    const val = normalizeValue(field, data[field]);
     if (val) {
       const container = document.querySelector(`[data-field="${field}"]`);
       if (container) {
@@ -859,8 +1042,8 @@ function collectAnswers() {
   const ans = {};
 
   // Single selects
-  ['distance','angle','lighting','colorchecker','leaf_color','density',
-   'uniformity','ground','heading','stage_guess'].forEach(field => {
+  ['distance','angle','lighting','calibration_tool','leaf_color','density',
+   'uniformity','ground','crack','heading','stage_guess'].forEach(field => {
     const container = document.querySelector(`[data-field="${field}"]`);
     const active = container?.querySelector('.chip.active');
     if (active) ans[field] = active.dataset.v;
@@ -941,11 +1124,13 @@ const FIELD_LABELS = {
   distance:    '拍攝距離',
   angle:       '拍攝角度',
   lighting:    '光線品質',
-  colorchecker:'校色卡',
+  colorchecker:'校準工具',
+  calibration_tool:'校準工具',
   leaf_color:  '葉色',
   density:     '植株密度',
   uniformity:  '生長整齊度',
   ground:      '地面/水位',
+  crack:       '裂縫',
   heading:     '抽穗狀況',
   abnormal:    '異常狀況',
   stage_guess: '生育階段',
@@ -955,17 +1140,19 @@ const FIELD_LABELS = {
 };
 
 const VALUE_LABELS = {
-  distance:    { close:'近距離（1-3株）', mid:'中距離（5-15株）', far:'全景（數十株到整片田）' },
-  angle:       { side:'水平側拍', oblique:'斜上方俯拍', topdown:'正上方鳥瞰' },
-  lighting:    { good:'良好', backlit:'逆光', overexposed:'過曝', dark:'偏暗' },
-  colorchecker:{ yes:'可見', no:'未見' },
+  distance:    { close:'近距離（1-15株）', mid:'中距離（15-30株）', far:'全景（30多株到整片田）', na:'不確定' },
+  angle:       { side:'水平側拍', oblique:'斜上方俯拍', topdown:'正上方鳥瞰', na:'不確定' },
+  lighting:    { good:'良好', backlit:'逆光', overexposed:'過曝', dark:'偏暗', na:'不確定' },
+  colorchecker:{ yes:'24色校色卡', no:'不確定', na:'不確定' },
+  calibration_tool:{ height_grid:'株高方格尺', color_checker_24:'24色校色卡', leaf_color_card:'葉色卡', na:'不確定' },
   leaf_color:  { above5:'≥5（濃綠）', level4:'4（略為濃綠）', level3:'3–3.5（正常綠）', below3:'<3（黃綠）', na:'無法判斷' },
   density:     { dense:'茂密', normal:'適中', sparse:'稀疏', na:'無法判斷' },
   uniformity:  { uniform:'整齊', slight:'略不齊', uneven:'差異大', na:'無法判斷' },
   ground:      { dry:'乾（無積水）', low:'低（1–3 cm）', mid:'中（3–6 cm）', high:'高（>6 cm）', na:'看不到地面' },
+  crack:       { none:'無', small:'小（1公分以下）', medium:'中（1-3公分）', large:'過大（超過3公分）' },
   heading:     { none:'未抽穗（0%）', few:'少數（1–25%）', most:'多數（25–75%）', all:'全部（>75%）', na:'無法判斷' },
   abnormal:    { none:'無異常', disease:'疑似病斑', pest:'蟲害痕跡', lodging:'倒伏', weed:'雜草', other:'其他' },
-  stage_guess: { establishment:'成活期', early_tillering:'分蘗始期', peak_tillering:'分蘗盛期', eff_tillering_end:'有效分蘗終期', panicle_init:'幼穗形成始期', booting:'孕穗期', heading_flowering:'抽穗開花期', filling:'灌漿期（乳熟/糊熟期）', maturity:'完熟期（黃熟/完熟期）', na:'不確定' },
+  stage_guess: { establishment:'成活期', early_tillering:'分蘗始期', peak_tillering:'分蘗盛期', max_tillering:'最高分蘗期（曬田期/有效分蘗終期~幼穗形成始期）', eff_tillering_end:'最高分蘗期（曬田期/有效分蘗終期~幼穗形成始期）', panicle_init:'最高分蘗期（曬田期/有效分蘗終期~幼穗形成始期）', booting:'孕穗期', heading_flowering:'抽穗開花期', filling:'灌漿期（乳熟/糊熟期）', maturity:'完熟期（黃熟/完熟期）', na:'不確定' },
   diseases:    { none:'無', mild:'輕微', moderate:'中度', severe:'重度', na:'無法判斷' }
 };
 
